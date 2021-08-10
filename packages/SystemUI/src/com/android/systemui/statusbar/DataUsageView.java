@@ -3,6 +3,7 @@ package com.android.systemui.statusbar;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.os.AsyncTask;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
@@ -12,6 +13,8 @@ import android.text.BidiFormatter;
 import android.text.format.Formatter;
 import android.text.format.Formatter.BytesResult;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.text.TextUtils;
 import android.widget.TextView;
 
 import com.android.internal.telephony.IccCardConstants;
@@ -31,6 +34,8 @@ public class DataUsageView extends TextView {
     private Context mContext;
     private String formattedinfo;
     private int mSimCount = 0;
+
+    private static final String TAG = "DataUsageView";
 
     public DataUsageView(Context context, AttributeSet attrs) {
         super(context, attrs);
