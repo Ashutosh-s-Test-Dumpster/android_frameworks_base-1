@@ -6,12 +6,16 @@ import android.os.AsyncTask;
 import android.provider.Settings;
 import android.telephony.SubscriptionInfo;
 import android.telephony.SubscriptionManager;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.text.BidiFormatter;
 import android.text.format.Formatter;
 import android.text.format.Formatter.BytesResult;
 import android.util.AttributeSet;
 import android.widget.TextView;
 
+import com.android.internal.telephony.IccCardConstants;
+import com.android.internal.telephony.TelephonyIntents;
 import com.android.settingslib.net.DataUsageController;
 import com.android.systemui.Dependency;
 import com.android.systemui.R;
@@ -25,7 +29,8 @@ public class DataUsageView extends TextView {
     private static boolean shouldUpdateDataTextView;
     private NetworkController mNetworkController;
     private Context mContext;
-    private String formatedinfo;
+    private String formattedinfo;
+    private int mSimCount = 0;
 
     public DataUsageView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -45,7 +50,24 @@ public class DataUsageView extends TextView {
         }
         if (shouldUpdateDataTextView) {
             shouldUpdateDataTextView = false;
-            setText(formatedinfo);
+            setText(formattedinfo);
+        }
+    }
+
+    private void updateSimCount() {
+        String simState = SystemProperties.get("gsm.sim.state");
+        mSimCount = 0;
+        try {
+            String[] sims = TextUtils.split(simState, ",");
+            for (int i = 0; i < sims.length; i++) {
+                if (!sims[i].isEmpty()
+                        && !sims[i].equalsIgnoreCase(IccCardConstants.INTENT_VALUE_ICC_ABSENT)
+                        && !sims[i].equalsIgnoreCase(IccCardConstants.INTENT_VALUE_ICC_NOT_READY)) {
+                    mSimCount++;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error to parse sim state");
         }
     }
 
@@ -57,8 +79,13 @@ public class DataUsageView extends TextView {
                 SubscriptionManager.getDefaultDataSubscriptionId());
         final DataUsageController.DataUsageInfo info = showDailyDataUsage ? mobileDataController.getDailyDataUsageInfo()
                 : mobileDataController.getDataUsageInfo();
-        formatedinfo = getSlotCarrierName() + ": " + formatDataUsage(info.usageLevel) + " "
-                + mContext.getResources().getString(R.string.usage_data);
+        updateSimCount();
+        if (mSimCount != 0) {
+            formattedinfo = getSlotCarrierName() + ": " + formatDataUsage(info.usageLevel) + " "
+                 + mContext.getResources().getString(R.string.usage_data);
+        } else {
+            formattedinfo = mContext.getResources().getString(R.string.no_sim_card_available);
+        }
         shouldUpdateDataTextView = true;
         invalidate();
     }
